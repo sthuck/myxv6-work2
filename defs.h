@@ -119,6 +119,7 @@ void            yield(void);
 int             signal(int, void (*sighandler_t)(void));
 int             sigsend(int, int);
 void            alarm(int);
+void			update_alarm(void);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

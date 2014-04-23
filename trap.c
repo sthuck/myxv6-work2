@@ -94,6 +94,8 @@ trap(struct trapframe *tf)
     proc->killed = 1;
   }
 
+  update_alarm();
+
   // Force process exit if it has been killed and is in user space.
   // (If it is still executing in the kernel, let it keep running 
   // until it gets to the regular system call return.)

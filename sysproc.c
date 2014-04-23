@@ -8,13 +8,13 @@
 
 int
 sys_signal(void) {
-  int pid;
+  int signum;
   int f;
-  if(argint(0, &pid) < 0)
+  if(argint(0, &signum) < 0)
     return -1;
   if(argint(1, &f) < 0)
     return -1;
-  return signal(pid, (sighandler_t)f);
+  return signal(signum, (sighandler_t)f);
 }
 int sys_sigsend(void) {
   int pid,sig;

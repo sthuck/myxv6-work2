@@ -17,8 +17,16 @@ static struct proc *initproc;
 int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
+void dealWithHandlers(struct proc*);
+int findEntryByPid(int);
 
 static void wakeup1(void *chan);
+
+
+
+void defultHandler(void){
+cprintf("A signal was accepted by process %d",proc->pid);
+}
 
 void
 pinit(void)
@@ -69,6 +77,8 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+  p->pending=0;
+  p->alarm=0;
 
   return p;
 }
@@ -145,6 +155,10 @@ fork(void)
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
+  np->pending=proc->pending;
+  i=0;
+  for (;i<NUMSIG;i++)
+    np->handlers[i]=proc->handlers[i];
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -156,6 +170,7 @@ fork(void)
 
   pid = np->pid;
   np->state = RUNNABLE;
+  np->alarm=0;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   return pid;
 }
@@ -292,6 +307,7 @@ scheduler(void)
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
+      dealWithHandlers(p);
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
 
@@ -474,17 +490,61 @@ procdump(void)
 }
 
 int
-signal(int pid, void (*sighandler_t)(void)) {
-    return 0;
+signal(int signum, void (*f)(void)) {
+  proc->handlers[signum]=f; 
+  return 0;
 }
 
 int
 sigsend(int pid, int sig) {
-    return 0;
+  if (sig==0)
+    return -1;
+  int entry = findEntryByPid(pid);
+  if (entry==NPROC)
+    return -1;
+  ptable.proc[entry].pending=ptable.proc[entry].pending | 1<<(sig-1);
+  return 0;
 }
 
 void
 alarm(int ticks) {
-    return;
+  proc->alarm=ticks;
+  return;
 }
 
+
+int
+findEntryByPid(int pid) {
+  int i = 0 ; 
+  for (;i<NPROC;i++) {
+    if (ptable.proc[i].pid==pid)
+      break;
+  }
+  return i;  // if pid does not exsist returns NPROC
+}
+
+void dealWithHandlers(struct proc *p) {
+  int i;
+  for (i=0;i<NUMSIG-1;i++) { 
+    if ((p->pending & 1<<i) == 1<<i) { 
+      p->pending &= (~1<<i);
+      if (p->handlers[i+1]==0)
+        defultHandler();
+      else
+        register_handler(p->handlers[i+1]);
+    }
+  }
+}
+
+void update_alarm(void) {
+  struct proc *p;
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p && p->alarm>0) {
+      p->alarm--;
+      if (p->alarm==0)
+        p->pending |= 1<<13; // 14 = sigalarm
+    }
+  }
+  release(&ptable.lock);
+}
