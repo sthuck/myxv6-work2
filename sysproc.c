@@ -7,6 +7,33 @@
 #include "proc.h"
 
 int
+sys_signal(void) {
+  int pid;
+  int f;
+  if(argint(0, &pid) < 0)
+    return -1;
+  if(argint(1, &f) < 0)
+    return -1;
+  return signal(pid, (sighandler_t)f);
+}
+int sys_sigsend(void) {
+  int pid,sig;
+  if(argint(0, &pid) < 0)
+    return -1;
+  if(argint(1, &sig) < 0)
+    return -1;
+  return sigsend(pid,sig);
+}
+
+int sys_alarm(void) {
+  int ticks;
+  if(argint(0, &ticks) < 0)
+    return -1;
+  alarm(ticks);
+    return 0;
+}
+
+int
 sys_fork(void)
 {
   return fork();
@@ -60,7 +87,7 @@ sys_sleep(void)
 {
   int n;
   uint ticks0;
-  
+
   if(argint(0, &n) < 0)
     return -1;
   acquire(&tickslock);
@@ -82,7 +109,7 @@ int
 sys_uptime(void)
 {
   uint xticks;
-  
+
   acquire(&tickslock);
   xticks = ticks;
   release(&tickslock);
