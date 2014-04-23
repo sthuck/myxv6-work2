@@ -12,6 +12,12 @@ struct uthread {
 	int				tid;
 	int 	       	esp;        /* current stack pointer */
 	int 	       	ebp;        /* current base pointer */
+	int 			eax;
+	int 			ebx;
+	int 			ecx;
+	int 			edx;
+	int 			esi;
+	int 			edi;
 	char		   *stack;	    /* the thread's stack */
 	uthread_state   state;     	/* running, runnable, sleeping */
 };
