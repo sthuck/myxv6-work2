@@ -7,20 +7,20 @@
 #define LOAD_EBP(var)   asm volatile("movl %0, %%ebp;" : : "r" ( var ))
 #define CALL(addr)              asm volatile("call *%0;" : : "r" ( addr ))
 #define PUSH(var)               asm volatile("movl %0, %%edi; push %%edi;" : : "r" ( var ))
-#define RET                     asm volatile("ret;")
-#define PUSHAL                  asm volatile("push eax;")\
-								asm volatile("push ebx;")\
-								asm volatile("push ecx;")\
-								asm volatile("push edx;")\
-								asm volatile("push edi;")\
-								asm volatile("push esi;")
+#define RET                     asm volatile("ret");
+#define PUSHAL                  asm volatile("push %eax");\
+								asm volatile("push %ebx");\
+								asm volatile("push %ecx");\
+								asm volatile("push %edx");\
+								asm volatile("push %edi");\
+								asm volatile("push %esi");
 
-#define POPAL                   asm volatile("pop esi;")\
-								asm volatile("pop edi;")\
-								asm volatile("pop edx;")\
-								asm volatile("pop ecx;")\
-								asm volatile("pop ebx;")\
-								asm volatile("pop eai;")
+#define POPAL                   asm volatile("pop %esi");\
+								asm volatile("pop %edi");\
+								asm volatile("pop %edx");\
+								asm volatile("pop %ecx");\
+								asm volatile("pop %ebx");\
+								asm volatile("pop %eax");
 
 
 
@@ -40,9 +40,9 @@ struct uthread {
 	uthread_state   state;     	/* running, runnable, sleeping */
 };
  
-void uthread_init(void);
-int  uthread_create(void (*func)(void *), void* value);
+int uthread_init(void);
+int  uthread_create(void (*func)(void *), void*);
 void uthread_exit(void);
 void uthread_yield(void);
 int  uthred_self(void);
-int  uthred_join(int tid);
+int  uthred_join(int);
