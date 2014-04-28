@@ -5,7 +5,7 @@
 void tester(void* a) {
 	int i=0;
 	for (i=0;i<50;i++) {
-		printf(1,"thread id %d printed for %d time\n",uthred_self(),i);
+		printf(1,"thread id %d, got %d, printed for %d time\n",uthred_self(), *((int*)a), i);
 	}
 	//uthread_exit();
 }
@@ -14,12 +14,15 @@ int
 main(int argc, char *argv[])
 {
 uthread_init();
-int tid1 = uthread_create(tester,0);
-//int tid2 = uthread_create(tester,0);
-//int tid3 = uthread_create(tester,0);
+int stam = 10;
+int stam1 = 12;
+int stam2 = 20;
+int tid1 = uthread_create(tester,&stam);
+int tid2 = uthread_create(tester,&stam1);
+int tid3 = uthread_create(tester,&stam2);
 uthred_join(tid1);
-//uthred_join(tid2);
-//uthred_join(tid3);
+uthred_join(tid2);
+uthred_join(tid3);
 exit();
 
 }

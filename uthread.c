@@ -75,19 +75,19 @@ uthread_create(void (*func)(void *), void* arg) {
 	t_table[tid].tid=tid;
 	t_table[tid].state=T_RUNNABLE;
 	t_table[tid].stack=malloc(STACK_SIZE);
-	*(t_table[tid].stack+STACK_SIZE-4) = (int)arg;
-	*(t_table[tid].stack+STACK_SIZE-8) = (int)uthread_exit;
-	*(t_table[tid].stack+STACK_SIZE-12) = 0;  //fake old ebp, doesnt matter
-	*(t_table[tid].stack+STACK_SIZE-16) = (int)func;
-	*(t_table[tid].stack+STACK_SIZE-20)=(int)t_table[tid].stack+STACK_SIZE-12     ;//"old ebp" - will go to ebp
-	*(t_table[tid].stack+STACK_SIZE-24)=0; // eax ;
-	*(t_table[tid].stack+STACK_SIZE-28)=0; // ebx
-	*(t_table[tid].stack+STACK_SIZE-32)=0; // ecx
-	*(t_table[tid].stack+STACK_SIZE-36)=0; // edx
-	*(t_table[tid].stack+STACK_SIZE-40)=0; // edi
-	*(t_table[tid].stack+STACK_SIZE-44)=0; // esi
-	t_table[tid].esp=(int)t_table[tid].stack+STACK_SIZE-44;
-	t_table[tid].ebp=(int)t_table[tid].stack+STACK_SIZE-20;  
+	*(t_table[tid].stack+STACK_ELEMENTS-1) = (int)arg;
+	*(t_table[tid].stack+STACK_ELEMENTS-2) = (int)uthread_exit;
+	//*(t_table[tid].stack+STACK_SIZE-12) = 0;  //fake old ebp, doesnt matter
+	*(t_table[tid].stack+STACK_ELEMENTS-3) = (int)func;
+	*(t_table[tid].stack+STACK_ELEMENTS-4)=(int)(t_table[tid].stack+STACK_ELEMENTS-3)     ;//"old ebp" - will go to ebp
+	*(t_table[tid].stack+STACK_ELEMENTS-5)=0; // eax ;
+	*(t_table[tid].stack+STACK_ELEMENTS-6)=0; // ebx
+	*(t_table[tid].stack+STACK_ELEMENTS-7)=0; // ecx
+	*(t_table[tid].stack+STACK_ELEMENTS-8)=0; // edx
+	*(t_table[tid].stack+STACK_ELEMENTS-9)=0; // edi
+	*(t_table[tid].stack+STACK_ELEMENTS-10)=0; // esi
+	t_table[tid].esp=(int)(t_table[tid].stack+STACK_ELEMENTS-10);
+	t_table[tid].ebp=(int)(t_table[tid].stack+STACK_ELEMENTS-4);  
 	return tid; 
 }
 
@@ -101,14 +101,14 @@ uthread_exit(void) {
 	}
 	
 	printf(2,"thead %d exited properly\n",current_thread);
-	free(t_table[current_thread].stack);
-	t_table[current_thread].state=T_FREE;
-
 	printf(2,"found next tid %d\n",next);
-    t_table[next].state=T_RUNNING;
-    current_thread=next;
-    LOAD_EBP(t_table[next].ebp);
-    LOAD_ESP(t_table[next].esp);
+	t_table[current_thread].state=T_FREE;
+	t_table[next].state=T_RUNNING;
+	int old_thread = current_thread;
+	current_thread=next;
+	free(t_table[old_thread].stack);
+    LOAD_EBP(t_table[current_thread].ebp);
+    LOAD_ESP(t_table[current_thread].esp);
     POPAL;
     alarm(THREAD_QUANTA);
     return ;
