@@ -1,8 +1,9 @@
-
 #include "types.h"
 #include "user.h"
 #include "uthread.h"
 #include "x86.h"
+
+
 
 
 uthread_p t_table;
@@ -60,7 +61,7 @@ uthread_yield(void) {
     STORE_EBP(this->ebp);
     PUSHAL;
     int next = getNextRunnableThread();
-    printf(2,"*****switcing from %d to %d*******\n",current_thread,next);
+    //printf(2,"*****switcing from %d to %d*******\n",current_thread,next);
     t_table[next].state=T_RUNNING;
     xchg(&t_table_lock, 0);//release
     current_thread=next;
@@ -138,33 +139,36 @@ uthred_join(int tid) {
 void  binary_semaphore_init(struct binary_semaphore* semaphore, int value){
 semaphore->value=value;
 semaphore->waitingL=0;
-}	
+}
 
 void binary_semaphore_down(struct binary_semaphore* semaphore){
 alarm(0);
-if (xchg(&semaphore->value, 0) == 0){
+if (semaphore->value==0){
 semaphore->waitProc[semaphore->waitingL]=&t_table[uthred_self()];
+semaphore->waitProc[semaphore->waitingL]->state=T_SLEEPING;
 semaphore->waitingL=semaphore->waitingL+1;
-(&t_table[uthred_self()])->state=T_SLEEPING;
 uthread_yield();
 }
-
+else semaphore->value=0;
+alarm(THREAD_QUANTA);
 }
 
 void binary_semaphore_up(struct binary_semaphore* semaphore){
 alarm(0);
+if(semaphore->value==0){
   if (semaphore->waitingL==0){
-      xchg(&semaphore->value, 1);
+      semaphore->value=1;
   }
-  if (semaphore->waitingL!=0){
-	semaphore->current= semaphore->waitProc[0];
-	(semaphore->current)->state= T_RUNNABLE;
-	int temp= semaphore->waitingL;
-	semaphore->waitingL=semaphore->waitingL-1;
-	int i;
-	for (i=1; i<=temp;++i){
+   else{
+struct uthread *current;
+current= semaphore->waitProc[0];
+current->state= T_RUNNABLE;
+int i;
+for (i=1; i<=semaphore->waitingL;i++){
 	semaphore->waitProc[i-1]=semaphore->waitProc[i];
-} 
+}
+semaphore->waitingL=semaphore->waitingL-1;
+  }
 }
 alarm(THREAD_QUANTA);
 }

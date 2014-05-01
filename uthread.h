@@ -45,7 +45,6 @@ struct uthread {
  struct binary_semaphore{
  unsigned int value;
  int waitingL;
- struct uthread *current;
  struct uthread *waitProc[MAX_THREAD];
 };
 
