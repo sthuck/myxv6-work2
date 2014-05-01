@@ -1,3 +1,4 @@
+
 #define THREAD_QUANTA 5
 
 
@@ -41,9 +42,23 @@ struct uthread {
 	uthread_state   state;     	/* running, runnable, sleeping */
 };
  
+ struct binary_semaphore{
+ unsigned int value;
+ int waitingL;
+ struct uthread *current;
+ struct uthread *waitProc[MAX_THREAD];
+};
+
+
+
+
+
 int uthread_init(void);
 int  uthread_create(void (*func)(void *), void*);
 void uthread_exit(void);
 void uthread_yield(void);
 int  uthred_self(void);
 int  uthred_join(int);
+void  binary_semaphore_init(struct binary_semaphore* , int);
+void  binary_semaphore_down(struct binary_semaphore*);
+void   binary_semaphore_up(struct binary_semaphore*);

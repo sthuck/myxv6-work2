@@ -17,12 +17,9 @@ uthread_init();
 int stam = 10;
 int stam1 = 12;
 int stam2 = 20;
-int tid1 = uthread_create(tester,&stam);
-int tid2 = uthread_create(tester,&stam1);
-int tid3 = uthread_create(tester,&stam2);
-uthred_join(tid1);
-uthred_join(tid2);
-uthred_join(tid3);
-exit();
-
+uthread_create(tester,&stam);
+uthread_create(tester,&stam1);
+uthread_create(tester,&stam2);
+uthread_exit();
+return 0;
 }

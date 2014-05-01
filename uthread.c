@@ -2,8 +2,11 @@
 #include "types.h"
 #include "user.h"
 #include "uthread.h"
+#include "x86.h"
+
 
 uthread_p t_table;
+volatile unsigned int t_table_lock=0;
 int current_thread=-1;
 
 int
@@ -50,13 +53,16 @@ uthred_self(void) {
 
 void 
 uthread_yield(void) {
+	while(xchg(&t_table_lock, 1) != 0) ;
 	uthread_p this = &t_table[current_thread];
 	this->state=T_RUNNABLE;
 	STORE_ESP(this->esp);
     STORE_EBP(this->ebp);
     PUSHAL;
     int next = getNextRunnableThread();
+    printf(2,"*****switcing from %d to %d*******\n",current_thread,next);
     t_table[next].state=T_RUNNING;
+    xchg(&t_table_lock, 0);//release
     current_thread=next;
     LOAD_EBP(t_table[current_thread].ebp);
     LOAD_ESP(t_table[current_thread].esp);
@@ -67,6 +73,7 @@ uthread_yield(void) {
 
 int 
 uthread_create(void (*func)(void *), void* arg) {
+	while(xchg(&t_table_lock, 1) != 0) ;
 	int tid = getNextFreeThread();
 	if (tid==-1) {
 		printf(2,"No more threads can be created\n");
@@ -74,10 +81,10 @@ uthread_create(void (*func)(void *), void* arg) {
 	}
 	t_table[tid].tid=tid;
 	t_table[tid].state=T_RUNNABLE;
+	xchg(&t_table_lock, 0);//release
 	t_table[tid].stack=malloc(STACK_SIZE);
 	*(t_table[tid].stack+STACK_ELEMENTS-1) = (int)arg;
 	*(t_table[tid].stack+STACK_ELEMENTS-2) = (int)uthread_exit;
-	//*(t_table[tid].stack+STACK_SIZE-12) = 0;  //fake old ebp, doesnt matter
 	*(t_table[tid].stack+STACK_ELEMENTS-3) = (int)func;
 	*(t_table[tid].stack+STACK_ELEMENTS-4)=(int)(t_table[tid].stack+STACK_ELEMENTS-3)     ;//"old ebp" - will go to ebp
 	*(t_table[tid].stack+STACK_ELEMENTS-5)=0; // eax ;
@@ -94,19 +101,22 @@ uthread_create(void (*func)(void *), void* arg) {
 
 void 
 uthread_exit(void) {
+	while(xchg(&t_table_lock, 1) != 0) ;
 	int next = getNextRunnableThread();
 	if (next==-1) {
 		printf(2,"last thread finished!\n");
 		exit();
 	}
 	
-	printf(2,"thead %d exited properly\n",current_thread);
-	printf(2,"found next tid %d\n",next);
+	//printf(2,"*****thread %d exited properly*******\n",current_thread);
+	//printf(2,"found next tid %d\n",next);
 	t_table[current_thread].state=T_FREE;
 	t_table[next].state=T_RUNNING;
+	xchg(&t_table_lock, 0);//release
 	int old_thread = current_thread;
 	current_thread=next;
-	free(t_table[old_thread].stack);
+	if (t_table[old_thread].stack)      //special case, for main theard, no  malloc
+		free(t_table[old_thread].stack);
     LOAD_EBP(t_table[current_thread].ebp);
     LOAD_ESP(t_table[current_thread].esp);
     POPAL;
@@ -123,4 +133,38 @@ uthred_join(int tid) {
 			return 0;
 		uthread_yield();
 	}
+}
+
+void  binary_semaphore_init(struct binary_semaphore* semaphore, int value){
+semaphore->value=value;
+semaphore->waitingL=0;
+}	
+
+void binary_semaphore_down(struct binary_semaphore* semaphore){
+alarm(0);
+if (xchg(&semaphore->value, 0) == 0){
+semaphore->waitProc[semaphore->waitingL]=&t_table[uthred_self()];
+semaphore->waitingL=semaphore->waitingL+1;
+(&t_table[uthred_self()])->state=T_SLEEPING;
+uthread_yield();
+}
+
+}
+
+void binary_semaphore_up(struct binary_semaphore* semaphore){
+alarm(0);
+  if (semaphore->waitingL==0){
+      xchg(&semaphore->value, 1);
+  }
+  if (semaphore->waitingL!=0){
+	semaphore->current= semaphore->waitProc[0];
+	(semaphore->current)->state= T_RUNNABLE;
+	int temp= semaphore->waitingL;
+	semaphore->waitingL=semaphore->waitingL-1;
+	int i;
+	for (i=1; i<=temp;++i){
+	semaphore->waitProc[i-1]=semaphore->waitProc[i];
+} 
+}
+alarm(THREAD_QUANTA);
 }
