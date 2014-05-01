@@ -101,6 +101,7 @@ extern int sys_uptime(void);
 extern int sys_signal(void);
 extern int sys_sigsend(void);
 extern int sys_alarm(void);
+extern int sys_delay_alarm(void);
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -125,7 +126,8 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_signal]  sys_signal,
 [SYS_sigsend] sys_sigsend,
-[SYS_alarm]   sys_alarm
+[SYS_alarm]   sys_alarm,
+[SYS_delay_alarm] sys_delay_alarm
 };
 
 void

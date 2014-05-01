@@ -27,6 +27,7 @@ int uptime(void);
 int sigsend(int, int);
 int signal(int,sighandler_t);
 void alarm(int);
+int delay_alarm(int);
 
 // ulib.c
 int stat(char*, struct stat*);

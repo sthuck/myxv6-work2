@@ -137,38 +137,53 @@ uthred_join(int tid) {
 }
 
 void  binary_semaphore_init(struct binary_semaphore* semaphore, int value){
-semaphore->value=value;
-semaphore->waitingL=0;
+	semaphore->value=value;
+	semaphore->waitingL=0;
 }
+
+/*
+Using Alarm(0) - can lead to one proccess never going to sleep, if he keeps doing
+binary_semaphore_up() on semaphore that is already up.
+
+the other option was using busy wait with  while(xchg(lock,1)), to do a lock on the semaphore.
+but than the semaphore can be not fair.
+1 proccess comes, uses the semaphore. 2nd process comes, tries to use, enter a while loop
+his QUANTA runs out, and he goes to sleep. when he wakes up, 3rd process is already using the semaphore
+so he enters the while loop again...
+
+*/
 
 void binary_semaphore_down(struct binary_semaphore* semaphore){
-alarm(0);
-if (semaphore->value==0){
-semaphore->waitProc[semaphore->waitingL]=&t_table[uthred_self()];
-semaphore->waitProc[semaphore->waitingL]->state=T_SLEEPING;
-semaphore->waitingL=semaphore->waitingL+1;
-uthread_yield();
-}
-else semaphore->value=0;
-alarm(THREAD_QUANTA);
+	delay_alarm(1);
+	if (semaphore->value==0) {
+		semaphore->waitProc[semaphore->waitingL]=&t_table[uthred_self()];
+		semaphore->waitProc[semaphore->waitingL]->state=T_SLEEPING;
+		semaphore->waitingL=semaphore->waitingL+1;
+		uthread_yield();
+	}
+	else 
+		semaphore->value=0;
+	delay_alarm(0);	
+	//alarm(THREAD_QUANTA);
 }
 
-void binary_semaphore_up(struct binary_semaphore* semaphore){
-alarm(0);
-if(semaphore->value==0){
-  if (semaphore->waitingL==0){
-      semaphore->value=1;
-  }
-   else{
-struct uthread *current;
-current= semaphore->waitProc[0];
-current->state= T_RUNNABLE;
-int i;
-for (i=1; i<=semaphore->waitingL;i++){
-	semaphore->waitProc[i-1]=semaphore->waitProc[i];
-}
-semaphore->waitingL=semaphore->waitingL-1;
-  }
-}
-alarm(THREAD_QUANTA);
+void binary_semaphore_up(struct binary_semaphore* semaphore) {
+	delay_alarm(1);
+	if(semaphore->value==0) {
+	  if (semaphore->waitingL==0) {
+	      semaphore->value=1;
+	  }
+	   else { 
+			struct uthread *current;
+			current= semaphore->waitProc[0];
+			current->state= T_RUNNABLE;
+			int i;
+			for (i=1; i<=semaphore->waitingL;i++){
+				semaphore->waitProc[i-1]=semaphore->waitProc[i];
+			}
+			semaphore->waitingL=semaphore->waitingL-1;
+	  }
+	}
+	delay_alarm(0);
+	//alarm(THREAD_QUANTA);
 }

@@ -48,10 +48,6 @@ struct uthread {
  struct uthread *waitProc[MAX_THREAD];
 };
 
-
-
-
-
 int uthread_init(void);
 int  uthread_create(void (*func)(void *), void*);
 void uthread_exit(void);

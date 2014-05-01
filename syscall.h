@@ -24,3 +24,4 @@
 #define SYS_signal  22
 #define SYS_sigsend 23
 #define SYS_alarm   24
+#define SYS_delay_alarm 25

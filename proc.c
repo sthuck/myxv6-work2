@@ -78,7 +78,8 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
   p->pending=0;
-  p->alarm=0;
+  p->alarm=-1;
+  p->delay_alarm=0;
 
   return p;
 }
@@ -170,7 +171,8 @@ fork(void)
 
   pid = np->pid;
   np->state = RUNNABLE;
-  np->alarm=0;
+  np->alarm=-1;
+  np->delay_alarm=0;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   return pid;
 }
@@ -508,7 +510,16 @@ sigsend(int pid, int sig) {
 
 void
 alarm(int ticks) {
-  proc->alarm=ticks;
+  if (ticks==0)
+    proc->alarm=-1;
+  else
+    proc->alarm=ticks;
+  return;
+}
+
+void
+delay_alarm(int val) {
+  proc->delay_alarm=val;
   return;
 }
 
@@ -540,11 +551,12 @@ void update_alarm(void) {
   struct proc *p;
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-    if (p && p->alarm>0) {
+    if (p && p->alarm>0)
       p->alarm--;
-      if (p->alarm==0)
+    if (p->alarm==0 && !p->delay_alarm) {
         p->pending |= 1<<13; // 14 = sigalarm
-    }
+        p->alarm=-1;   //disable next alarm
+      }
   }
   release(&ptable.lock);
 }

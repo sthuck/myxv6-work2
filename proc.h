@@ -72,6 +72,7 @@ struct proc {
   unsigned int pending; 
   sighandler_t handlers[NUMSIG];
   int alarm;
+  int delay_alarm;
 };
 
 // Process memory is laid out contiguously, low addresses first:

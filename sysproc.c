@@ -30,9 +30,16 @@ int sys_alarm(void) {
   if(argint(0, &ticks) < 0)
     return -1;
   alarm(ticks);
-    return 0;
+  return 0;
 }
 
+int sys_delay_alarm(void) {
+  int val;
+  if(argint(0, &val) < 0)
+    return -1;
+  delay_alarm(val);
+  return 0;
+}
 int
 sys_fork(void)
 {
